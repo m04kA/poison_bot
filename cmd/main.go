@@ -3,9 +3,26 @@ package main
 import (
 	"log"
 	"os"
+	"sync"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+
+	"poison_bot/internal/coreView"
+	"poison_bot/internal/sender"
 )
+
+//var numericKeyboard = tgbotapi.NewReplyKeyboard(
+//	tgbotapi.NewKeyboardButtonRow(
+//		tgbotapi.NewKeyboardButton("1"),
+//		tgbotapi.NewKeyboardButton("2"),
+//		tgbotapi.NewKeyboardButton("3"),
+//	),
+//	tgbotapi.NewKeyboardButtonRow(
+//		tgbotapi.NewKeyboardButton("4"),
+//		tgbotapi.NewKeyboardButton("5"),
+//		tgbotapi.NewKeyboardButton("6"),
+//	),
+//)
 
 func main() {
 	logger := log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)
@@ -28,17 +45,40 @@ func main() {
 
 	updates := bot.GetUpdatesChan(updateConfig)
 
-	for update := range updates {
-		if update.Message == nil {
-			continue
-		}
+	s := sender.NewSender(logger, bot)
+	waitGroup := sync.WaitGroup{}
+	worker := coreView.New(logger, updates, s, &waitGroup)
 
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
+	waitGroup.Add(Workers)
+	err = worker.Process()
+	waitGroup.Wait()
 
-		msg.ReplyToMessageID = update.Message.MessageID
-
-		if _, err = bot.Send(msg); err != nil {
-			logger.Fatal("Error sending message", err)
-		}
-	}
+	//for update := range updates {
+	//	if update.Message == nil { // ignore any non-Message updates
+	//		continue
+	//	}
+	//
+	//	//if !update.Message.IsCommand() { // ignore any non-command Messages
+	//	//	continue
+	//	//}
+	//
+	//	// Create a new MessageConfig. We don't have text yet,
+	//	// so we leave it empty.
+	//	msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
+	//	//chanID := int64(-1002430802369)
+	//	msgForChannel := tgbotapi.NewMessage(ChannelForOrdersID, msg.Text)
+	//
+	//	switch update.Message.Text {
+	//	case "open":
+	//		msg.ReplyMarkup = numericKeyboard
+	//	case "close":
+	//		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+	//	}
+	//
+	//	data, err := bot.Send(msgForChannel)
+	//	if err != nil {
+	//		log.Panic(err)
+	//	}
+	//	logger.Println(data)
+	//}
 }
