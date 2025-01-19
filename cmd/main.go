@@ -24,17 +24,37 @@ import (
 //	),
 //)
 
+const (
+	success = 0
+	fail    = 1
+)
+
 func main() {
+	os.Exit(run())
+}
+
+func run() (exitCode int) {
+	var err error
+
 	logger := log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)
 
-	err := tgbotapi.SetLogger(logger)
+	defer func() {
+		if panicErr := recover(); panicErr != nil {
+			logger.Printf("panic error: %v", panicErr)
+			exitCode = fail
+		}
+	}()
+
+	err = tgbotapi.SetLogger(logger)
 	if err != nil {
 		logger.Fatal("Failed to set Telegram bot logger; error: ", err)
+		return fail
 	}
 
 	bot, err := tgbotapi.NewBotAPI(TgToken)
 	if err != nil {
 		logger.Fatal("Error creating bot", err)
+		return fail
 	}
 
 	bot.Debug = true
@@ -49,10 +69,15 @@ func main() {
 	waitGroup := sync.WaitGroup{}
 	worker := coreView.New(logger, updates, s, &waitGroup)
 
-	waitGroup.Add(Workers)
+	waitGroup.Add(Workers) // TODO: Сделать нормальные воркеры, чтоб это работало по назначению
 	err = worker.Process()
 	waitGroup.Wait()
 
+	if err != nil {
+		logger.Fatal("Error processing updates", err)
+		return fail
+	}
+	return success
 	//for update := range updates {
 	//	if update.Message == nil { // ignore any non-Message updates
 	//		continue

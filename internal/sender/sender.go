@@ -18,6 +18,13 @@ func NewSender(l *log.Logger, bot *tgbotapi.BotAPI) *Sender {
 	}
 }
 
+var startKeyboard = tgbotapi.NewReplyKeyboard(
+	tgbotapi.NewKeyboardButtonRow(
+		tgbotapi.NewKeyboardButton("/help"),
+		tgbotapi.NewKeyboardButton("/createOrder"),
+	),
+)
+
 func (s *Sender) SendStartMessage(chatId int64) error {
 	text := `
 	Привет! Это бот по заказу одежды и обуви с пойзона.
@@ -26,6 +33,8 @@ func (s *Sender) SendStartMessage(chatId int64) error {
 	После создания заказа, с вами свяжется наш менеджер.
 	`
 	msg := tgbotapi.NewMessage(chatId, text)
+
+	msg.ReplyMarkup = startKeyboard
 
 	_, err := s.bot.Send(msg)
 	if err != nil {
