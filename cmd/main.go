@@ -9,6 +9,7 @@ import (
 
 	coreview "poison_bot/internal/core_view"
 	orderrepo "poison_bot/internal/db/orders/repository"
+	pricecalculator "poison_bot/internal/price_calculator"
 	"poison_bot/internal/sender"
 	createitem "poison_bot/internal/usecase/create_item"
 )
@@ -70,8 +71,9 @@ func run() (exitCode int) {
 	s := sender.NewSender(logger, bot)
 	or := orderrepo.NewOrderRepository()
 	ip := createitem.NewProcessor(or, s)
+	pc := pricecalculator.New(CNYToRUB)
 	waitGroup := sync.WaitGroup{}
-	worker := coreview.New(logger, s, or, updates, &waitGroup, ip, ChannelForOrdersReports)
+	worker := coreview.New(logger, s, or, pc, updates, &waitGroup, ip, ChannelForOrdersReports)
 
 	waitGroup.Add(Workers) // TODO: Сделать нормальные воркеры, чтоб это работало по назначению
 	err = worker.Process()

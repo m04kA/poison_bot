@@ -6,7 +6,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
-	orders "poison_bot/internal/db/orders/entity"
+	orders "poison_bot/internal/domain"
 )
 
 type View struct {
@@ -16,10 +16,11 @@ type View struct {
 	updates                   tgbotapi.UpdatesChannel
 	wg                        *sync.WaitGroup
 	itemProcessor             ItemProcessor
+	priceCalculator           PriceCalculator
 	idChannelForOrdersReports int64
 }
 
-func New(l *log.Logger, sender Sender, or OrderRepository, updates tgbotapi.UpdatesChannel, wg *sync.WaitGroup, ip ItemProcessor, idReportChanel int64) *View {
+func New(l *log.Logger, sender Sender, or OrderRepository, pc PriceCalculator, updates tgbotapi.UpdatesChannel, wg *sync.WaitGroup, ip ItemProcessor, idReportChanel int64) *View {
 	return &View{
 		log:                       l,
 		sender:                    sender,
@@ -27,6 +28,7 @@ func New(l *log.Logger, sender Sender, or OrderRepository, updates tgbotapi.Upda
 		updates:                   updates,
 		wg:                        wg,
 		itemProcessor:             ip,
+		priceCalculator:           pc,
 		idChannelForOrdersReports: idReportChanel,
 	}
 }
@@ -139,11 +141,13 @@ func (v *View) Process() (err error) {
 					}
 				}
 
-				err = v.sender.SendOrderReport(ChatID, *order)
+				exchangeRate := v.priceCalculator.GetExchangeRate()
+				totalPRice := v.priceCalculator.Calculate(*order)
+				err = v.sender.SendOrderReport(ChatID, *order, exchangeRate, totalPRice)
 				if err != nil {
 					return err
 				}
-				err = v.sender.SendOrderReport(v.idChannelForOrdersReports, *order)
+				err = v.sender.SendOrderReport(v.idChannelForOrdersReports, *order, exchangeRate, totalPRice)
 				if err != nil {
 					return err
 				}

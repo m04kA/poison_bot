@@ -1,12 +1,14 @@
 package sender
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
-	orders "poison_bot/internal/db/orders/entity"
+	basket "poison_bot/internal/db/basket/entity"
+	orders "poison_bot/internal/domain"
 )
 
 type Sender struct {
@@ -126,7 +128,7 @@ func (s *Sender) SendRequestUrl(chatId int64) error {
 
 func (s *Sender) SendRequestPrice(chatId int64) error {
 	text := `
-	Сколько стоит товар в CNY? 
+	Сколько стоит товар в CNY (¥)? 
 	Формат ввода: 186
 `
 	msg := tgbotapi.NewMessage(chatId, text)
@@ -189,7 +191,52 @@ func (s *Sender) SendUnknownMessage(chatId int64) error {
 	return nil
 }
 
-func (s *Sender) SendOrderReport(chatId int64, order orders.Order) error {
-	//text := ``
+func (s *Sender) SendOrderReport(chatId int64, order orders.Order, exchangeRate float64, totalPrice float64) error {
+	itemsText := ""
+	for _, item := range order.Items {
+		itemsText += getItemText(item)
+	}
+
+	orderText := fmt.Sprintf(
+		`
+User: %s
+Exchange rate: %f
+Total price: %f
+Items:
+%s
+`,
+		order.UserName,
+		exchangeRate,
+		totalPrice,
+		itemsText,
+	)
+
+	msg := tgbotapi.NewMessage(chatId, orderText)
+	msg.DisableWebPagePreview = true
+
+	_, err := s.bot.Send(msg)
+	if err != nil {
+		s.log.Printf("Error sending start message: %v", err)
+		return err
+	}
 	return nil
+}
+
+func getItemText(item basket.BasketItem) string {
+	return fmt.Sprintf(
+		`
+
+-----------------------------
+Item № %d
+Link: %s
+Price: %d ¥
+Quantity: %d
+-----------------------------
+
+				`,
+		item.ID,
+		item.Url,
+		item.Price,
+		item.Quantity,
+	)
 }

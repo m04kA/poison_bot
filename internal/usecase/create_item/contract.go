@@ -2,7 +2,7 @@ package create_item
 
 import (
 	basket "poison_bot/internal/db/basket/entity"
-	orders "poison_bot/internal/db/orders/entity"
+	orders "poison_bot/internal/domain"
 )
 
 type OrderRepository interface {

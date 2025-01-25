@@ -6,35 +6,35 @@ import (
 	"time"
 
 	basket "poison_bot/internal/db/basket/entity"
-	"poison_bot/internal/db/orders/entity"
+	"poison_bot/internal/domain"
 )
 
 type OrderRepository struct {
-	orders map[string][]entity.Order
+	orders map[string][]domain.Order
 }
 
 func NewOrderRepository() *OrderRepository {
 	return &OrderRepository{
-		orders: make(map[string][]entity.Order),
+		orders: make(map[string][]domain.Order),
 	}
 }
 
 func (r *OrderRepository) CreateOrder(username string) (index int) {
 	user, ok := r.orders[username]
 	if !ok {
-		r.orders[username] = make([]entity.Order, 0, 1)
+		r.orders[username] = make([]domain.Order, 0, 1)
 		user = r.orders[username]
 	}
 
-	order := entity.Order{}
+	order := domain.Order{}
 	if len(user) != 0 {
 		order = user[len(user)-1]
-		if order.Status != entity.OrderStatusNew {
-			order = entity.Order{
+		if order.Status != domain.OrderStatusNew {
+			order = domain.Order{
 				ID:        len(r.orders[username]), // TODO: сделать нормальную логику
-				UserName:  entity.Username(username),
+				UserName:  domain.Username(username),
 				Items:     make([]basket.BasketItem, 0),
-				Status:    entity.OrderStatusNew,
+				Status:    domain.OrderStatusNew,
 				CreatedAt: time.Now(),
 				UpdatedAt: time.Now(),
 			}
@@ -45,7 +45,7 @@ func (r *OrderRepository) CreateOrder(username string) (index int) {
 	return len(user) - 1
 }
 
-func (r *OrderRepository) GetOrder(username string, orderIndex *int) (*entity.Order, error) {
+func (r *OrderRepository) GetOrder(username string, orderIndex *int) (*domain.Order, error) {
 	user, ok := r.orders[username]
 	if !ok {
 		return nil, errors.New("user with username: " + username + " not found")
@@ -76,11 +76,11 @@ func (r *OrderRepository) CancelOrder(username string, orderIndex int) error {
 		return errors.New("for user: " + username + "; not found order with index: " + strconv.Itoa(orderIndex))
 	}
 
-	user[orderIndex].Status = entity.OrderStatusCancelled
+	user[orderIndex].Status = domain.OrderStatusCancelled
 	return nil
 }
 
-func (r *OrderRepository) UpdateOrder(username string, order entity.Order) error {
+func (r *OrderRepository) UpdateOrder(username string, order domain.Order) error {
 	user, ok := r.orders[username]
 	if !ok {
 		return errors.New("user with username: " + username + " not found")

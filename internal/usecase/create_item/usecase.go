@@ -9,7 +9,7 @@ import (
 
 	coreView "poison_bot/internal/core_view"
 	basket "poison_bot/internal/db/basket/entity"
-	orders "poison_bot/internal/db/orders/entity"
+	orders "poison_bot/internal/domain"
 )
 
 type Processor struct {
