@@ -26,22 +26,18 @@ func (r *OrderRepository) CreateOrder(username string) (index int) {
 		user = r.orders[username]
 	}
 
-	order := domain.Order{}
-	if len(user) != 0 {
-		order = user[len(user)-1]
-		if order.Status != domain.OrderStatusNew {
-			order = domain.Order{
-				ID:        len(r.orders[username]), // TODO: сделать нормальную логику
-				UserName:  domain.Username(username),
-				Items:     make([]basket.BasketItem, 0),
-				Status:    domain.OrderStatusNew,
-				CreatedAt: time.Now(),
-				UpdatedAt: time.Now(),
-			}
-			user = append(user, order)
+	if len(user) == 0 || (len(user) != 0 && user[len(user)-1].Status != domain.OrderStatusNew) {
+		order := domain.Order{
+			ID:        len(r.orders[username]), // TODO: сделать нормальную логику
+			UserName:  domain.Username(username),
+			Items:     make([]basket.BasketItem, 0),
+			Status:    domain.OrderStatusNew,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
 		}
+		user = append(user, order)
+		r.orders[username] = user
 	}
-
 	return len(user) - 1
 }
 

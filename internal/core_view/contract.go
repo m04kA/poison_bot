@@ -12,7 +12,8 @@ import (
 type Sender interface {
 	SendNotificationAboutNewOrder(chatId int64, orderID int) error
 	SendNotificationAboutCancelOrder(chatId int64, orderID int) error
-	SendOrderReport(chatId int64, order domain.Order, exchangeRate float64, totalPrice float64) error
+	SendUserOrderReport(chatId int64, order domain.Order, totalPrice float64) error
+	SendAdminOrderReport(chatId int64, order domain.Order, exchangeRate float64, totalPrice float64) error
 	SendStartMessage(chatId int64) error
 	SendRequestUrl(chatId int64) error
 	SendRequestPrice(chatId int64) error

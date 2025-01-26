@@ -17,7 +17,7 @@ func New(er float64) *Calculator {
 func (c *Calculator) Calculate(order domain.Order) float64 {
 	totalPrice := 0.0
 	for _, item := range order.Items {
-		totalPrice += float64(item.Price)
+		totalPrice += float64(item.Price) * float64(item.Quantity)
 	}
 	return totalPrice * c.exchangeRate
 }

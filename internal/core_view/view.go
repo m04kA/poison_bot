@@ -143,11 +143,11 @@ func (v *View) Process() (err error) {
 
 				exchangeRate := v.priceCalculator.GetExchangeRate()
 				totalPRice := v.priceCalculator.Calculate(*order)
-				err = v.sender.SendOrderReport(ChatID, *order, exchangeRate, totalPRice)
+				err = v.sender.SendUserOrderReport(ChatID, *order, totalPRice)
 				if err != nil {
 					return err
 				}
-				err = v.sender.SendOrderReport(v.idChannelForOrdersReports, *order, exchangeRate, totalPRice)
+				err = v.sender.SendAdminOrderReport(v.idChannelForOrdersReports, *order, exchangeRate, totalPRice)
 				if err != nil {
 					return err
 				}

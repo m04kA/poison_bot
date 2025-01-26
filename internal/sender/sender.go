@@ -65,9 +65,22 @@ var addNewItemKeyboard = tgbotapi.NewReplyKeyboard(
 func (s *Sender) SendStartMessage(chatId int64) error {
 	text := `
 	Привет! Это бот по заказу одежды и обуви с пойзона.
+	Используйте команды, которые вам предлагает бот.
 	
-	Чтоб сделать новый заказ, выполни команду /create_order.
-	После создания заказа, с вами свяжется наш менеджер.
+	Чтоб сделать новый заказ, выполни команду - /create_order.
+
+	После создания заказа, вы сможете заполнить данные по товарам, которые хотите заказать.
+	Если заполнили данные по товару, но понимаете что нужно что-то поменять, используйте команду - /remove_item_data
+	Эта команда позволит заполнить все данные заново.
+
+	Если заполнили все данные по товару и хотите добавить в товар ещё один, используйте команду - /add_new_item_to_order
+
+	При завершении оформления заказа используйте команду - /send_order_to_manage
+	После этого с вами свяжется наш менеджер.
+
+	Если хотите отменить свой заказ, нужно выполнить команду /cancel_order.
+
+	
 	`
 	msg := tgbotapi.NewMessage(chatId, text)
 
@@ -191,7 +204,7 @@ func (s *Sender) SendUnknownMessage(chatId int64) error {
 	return nil
 }
 
-func (s *Sender) SendOrderReport(chatId int64, order orders.Order, exchangeRate float64, totalPrice float64) error {
+func (s *Sender) SendUserOrderReport(chatId int64, order orders.Order, totalPrice float64) error {
 	itemsText := ""
 	for _, item := range order.Items {
 		itemsText += getItemText(item)
@@ -199,9 +212,38 @@ func (s *Sender) SendOrderReport(chatId int64, order orders.Order, exchangeRate 
 
 	orderText := fmt.Sprintf(
 		`
-User: %s
-Exchange rate: %f
-Total price: %f
+User: @%s
+Total price:	%.2f RUB (₽)
+Items:
+%s
+`,
+		order.UserName,
+		totalPrice,
+		itemsText,
+	)
+
+	msg := tgbotapi.NewMessage(chatId, orderText)
+	msg.DisableWebPagePreview = true
+
+	_, err := s.bot.Send(msg)
+	if err != nil {
+		s.log.Printf("Error sending start message: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (s *Sender) SendAdminOrderReport(chatId int64, order orders.Order, exchangeRate float64, totalPrice float64) error {
+	itemsText := ""
+	for _, item := range order.Items {
+		itemsText += getItemText(item)
+	}
+
+	orderText := fmt.Sprintf(
+		`
+User: @%s
+Exchange rate:	%.2f RUB (₽) = 1 CNY (¥)
+Total price:	%.2f RUB (₽)
 Items:
 %s
 `,
@@ -229,7 +271,7 @@ func getItemText(item basket.BasketItem) string {
 -----------------------------
 Item № %d
 Link: %s
-Price: %d ¥
+Price: %d CNY (¥)
 Quantity: %d
 -----------------------------
 
