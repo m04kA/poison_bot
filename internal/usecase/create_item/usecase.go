@@ -7,9 +7,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
-	coreView "poison_bot/internal/core_view"
-	basket "poison_bot/internal/db/basket/entity"
-	orders "poison_bot/internal/domain"
+	"poison_bot/internal/domain"
 )
 
 type Processor struct {
@@ -24,12 +22,18 @@ func NewProcessor(or OrderRepository, s Sender) *Processor {
 	}
 }
 
-func (p *Processor) ProcessCreateItem(update tgbotapi.Update, session coreView.SessionData, isActive bool) (coreView.SessionData, error) {
+func (p *Processor) ProcessCreateItem(
+	update tgbotapi.Update,
+	session domain.SessionData,
+	isActive bool,
+	userName string,
+	chatID int64,
+) (domain.SessionData, error) {
 	// TODO: Добавить нормальных логов
 	// TODO: Убрать связность между пакетами в передаваемых и отдаваемых структурах
 
-	chatID := update.Message.Chat.ID
-	userName := update.Message.From.UserName
+	//chatID := update.Message.Chat.ID
+	//userName := update.Message.From.UserName
 
 	if !isActive {
 		err := p.sender.SendUnknownMessage(chatID)
@@ -41,10 +45,13 @@ func (p *Processor) ProcessCreateItem(update tgbotapi.Update, session coreView.S
 
 	order, err := p.orderRepo.GetOrder(userName, session.OrderIndex)
 	if err != nil {
-		return session, err
+		err = p.sender.SendUnknownMessage(chatID)
+		if err != nil {
+			return session, err // TODO: Обернуть ошибку нормально
+		}
 	}
 
-	if order == nil || order.Status != orders.OrderStatusNew {
+	if order == nil || order.Status != domain.OrderStatusNew {
 		newOrderInd := p.orderRepo.CreateOrder(userName)
 		session.OrderIndex = &newOrderInd
 		order, err = p.orderRepo.GetOrder(userName, session.OrderIndex)
@@ -58,11 +65,43 @@ func (p *Processor) ProcessCreateItem(update tgbotapi.Update, session coreView.S
 		session.OrderIndex = &id
 	}
 
+	if update.CallbackQuery != nil {
+
+		if session.Type != nil {
+			err = p.sender.SendUnknownMessage(chatID)
+			if err != nil {
+				return session, err // TODO: Обернуть ошибку нормально
+			}
+
+			return session, nil
+		}
+
+		data := domain.ItemType(update.CallbackQuery.Data)
+		session.Type = &data
+
+		switch data {
+		case domain.ItemTypeShoes:
+			err = p.sender.SendRequestShoesSize(chatID)
+			if err != nil {
+				return session, err // TODO: Обернуть ошибку нормально
+			}
+
+			return session, nil
+		case domain.ItemTypeOuterwear, domain.ItemTypeCloth:
+			err = p.sender.SendRequestClosesSize(chatID)
+			if err != nil {
+				return session, err // TODO: Обернуть ошибку нормально
+			}
+
+			return session, nil
+		}
+	}
+
 	switch {
 	case session.Url == nil:
 		urlText := update.Message.Text
-		urlData, err := url.ParseRequestURI(urlText)
-		if err != nil {
+		urlData, errUrl := url.ParseRequestURI(urlText)
+		if errUrl != nil {
 			err = p.sender.SendUnknownMessage(chatID)
 			if err != nil {
 				return session, err // TODO: Обернуть ошибку нормально
@@ -73,10 +112,19 @@ func (p *Processor) ProcessCreateItem(update tgbotapi.Update, session coreView.S
 
 		session.Url = urlData
 
+		err = p.sender.SendRequestThinkType(chatID)
+		if err != nil {
+			return session, err
+		}
+	case session.Size == nil:
+		size := update.Message.Text
+		session.Size = &size
+
 		err = p.sender.SendRequestPrice(chatID)
 		if err != nil {
 			return session, err
 		}
+
 	case session.Price == nil:
 		price, errParce := strconv.Atoi(update.Message.Text)
 		if errParce != nil {
@@ -105,7 +153,7 @@ func (p *Processor) ProcessCreateItem(update tgbotapi.Update, session coreView.S
 			return session, nil
 		}
 		session.Quantity = &quantity
-		item := p.createItemBasket(*order, session.Url.String(), *session.Price, *session.Quantity)
+		item := p.createItemBasket(*order, session)
 		err = p.orderRepo.AddItem(userName, order.ID, *item)
 		if err != nil {
 			return session, err
@@ -120,13 +168,15 @@ func (p *Processor) ProcessCreateItem(update tgbotapi.Update, session coreView.S
 	return session, nil
 }
 
-func (p *Processor) createItemBasket(order orders.Order, url string, price int, quantity int) *basket.BasketItem {
-	return &basket.BasketItem{
+func (p *Processor) createItemBasket(order domain.Order, session domain.SessionData) *domain.BasketItem {
+	return &domain.BasketItem{
 		ID:        len(order.Items),
 		OrderID:   order.ID,
-		Url:       url,
-		Price:     price,
-		Quantity:  quantity,
+		Url:       session.Url.String(),
+		Price:     *session.Price,
+		Quantity:  *session.Quantity,
+		Type:      *session.Type,
+		Size:      *session.Size,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}

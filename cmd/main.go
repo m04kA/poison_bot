@@ -14,19 +14,6 @@ import (
 	createitem "poison_bot/internal/usecase/create_item"
 )
 
-//var numericKeyboard = tgbotapi.NewReplyKeyboard(
-//	tgbotapi.NewKeyboardButtonRow(
-//		tgbotapi.NewKeyboardButton("1"),
-//		tgbotapi.NewKeyboardButton("2"),
-//		tgbotapi.NewKeyboardButton("3"),
-//	),
-//	tgbotapi.NewKeyboardButtonRow(
-//		tgbotapi.NewKeyboardButton("4"),
-//		tgbotapi.NewKeyboardButton("5"),
-//		tgbotapi.NewKeyboardButton("6"),
-//	),
-//)
-
 const (
 	success = 0
 	fail    = 1

@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"time"
 
-	basket "poison_bot/internal/db/basket/entity"
 	"poison_bot/internal/domain"
 )
 
@@ -30,7 +29,7 @@ func (r *OrderRepository) CreateOrder(username string) (index int) {
 		order := domain.Order{
 			ID:        len(r.orders[username]), // TODO: сделать нормальную логику
 			UserName:  domain.Username(username),
-			Items:     make([]basket.BasketItem, 0),
+			Items:     make([]domain.BasketItem, 0),
 			Status:    domain.OrderStatusNew,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
@@ -90,7 +89,7 @@ func (r *OrderRepository) UpdateOrder(username string, order domain.Order) error
 	return nil
 }
 
-func (r *OrderRepository) AddItem(username string, orderIndex int, item basket.BasketItem) (err error) {
+func (r *OrderRepository) AddItem(username string, orderIndex int, item domain.BasketItem) (err error) {
 	user, ok := r.orders[username]
 	if !ok {
 		return errors.New("user with username: " + username + " not found")

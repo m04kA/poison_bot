@@ -2,19 +2,17 @@ package domain
 
 import (
 	"time"
-
-	basket "poison_bot/internal/db/basket/entity"
 )
 
 type Username string // format: username
 
 type Order struct { // TODO: Вынести в domain
-	ID        int                 `json:"id"`
-	UserName  Username            `json:"userName"` // format: username
-	Items     []basket.BasketItem `json:"items"`
-	Status    OrderStatus         `json:"status"` // TODO: сделать enum new / inProgress / done
-	CreatedAt time.Time           `json:"createdAt"`
-	UpdatedAt time.Time           `json:"updatedAt"`
+	ID        int          `json:"id"`
+	UserName  Username     `json:"userName"` // format: username
+	Items     []BasketItem `json:"items"`
+	Status    OrderStatus  `json:"status"` // TODO: сделать enum new / inProgress / done
+	CreatedAt time.Time    `json:"createdAt"`
+	UpdatedAt time.Time    `json:"updatedAt"`
 }
 
 type OrderStatus string
