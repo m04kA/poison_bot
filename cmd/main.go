@@ -7,22 +7,12 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
-	"poison_bot/internal/coreView"
+	coreview "poison_bot/internal/core_view"
+	orderrepo "poison_bot/internal/db/orders/repository"
+	pricecalculator "poison_bot/internal/price_calculator"
 	"poison_bot/internal/sender"
+	createitem "poison_bot/internal/usecase/create_item"
 )
-
-//var numericKeyboard = tgbotapi.NewReplyKeyboard(
-//	tgbotapi.NewKeyboardButtonRow(
-//		tgbotapi.NewKeyboardButton("1"),
-//		tgbotapi.NewKeyboardButton("2"),
-//		tgbotapi.NewKeyboardButton("3"),
-//	),
-//	tgbotapi.NewKeyboardButtonRow(
-//		tgbotapi.NewKeyboardButton("4"),
-//		tgbotapi.NewKeyboardButton("5"),
-//		tgbotapi.NewKeyboardButton("6"),
-//	),
-//)
 
 const (
 	success = 0
@@ -66,8 +56,11 @@ func run() (exitCode int) {
 	updates := bot.GetUpdatesChan(updateConfig)
 
 	s := sender.NewSender(logger, bot)
+	or := orderrepo.NewOrderRepository()
+	ip := createitem.NewProcessor(or, s)
+	pc := pricecalculator.New(CNYToRUB)
 	waitGroup := sync.WaitGroup{}
-	worker := coreView.New(logger, updates, s, &waitGroup)
+	worker := coreview.New(logger, s, or, pc, updates, &waitGroup, ip, ChannelForOrdersReports)
 
 	waitGroup.Add(Workers) // TODO: Сделать нормальные воркеры, чтоб это работало по назначению
 	err = worker.Process()
